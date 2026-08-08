@@ -111,7 +111,7 @@ class EventsProviderClient:
                 "seat": seat,
             },
         )
-        data = self._get_json(response, expected_status_code=(201,))
+        data = self._get_json(response, expected_status_code=(200, 201))
 
         raw_ticket_id = data.get("ticket_id")
 
