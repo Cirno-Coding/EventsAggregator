@@ -1,0 +1,30 @@
+from uuid import UUID
+
+from app.cache.ttl import TTLCache
+from app.clients.events_provider import EventsProviderClient
+from app.repositories.tickets import TicketRepository
+
+
+class TicketNotFoundError(Exception):
+    """Билет отсутствует в локальной БД."""
+
+
+class DeleteTicketUseCase:
+    """Отменить регистрацию посетителя на событие."""
+
+    def __init__(self, *, tickets_repository: TicketRepository, client: EventsProviderClient, seats_cache: TTLCache[list[str]]) -> None:
+        self._tickets_repository = tickets_repository
+        self._client = client
+        self._seats_cache = seats_cache
+
+    async def execute(self, ticket_id: UUID) -> None:
+        """Отменить регистрацию у Provider API и удалить локальный билет."""
+        ticket = await self._tickets_repository.get_by_id(ticket_id)
+
+        if ticket is None:
+            raise TicketNotFoundError()
+
+        await self._client.unregister(event_id=ticket.event_id, ticket_id=ticket.id)
+
+        await self._tickets_repository.delete(ticket)
+        self._seats_cache.delete(str(ticket.event_id))

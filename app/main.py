@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from app.api.events import router as events_router
 from app.api.health import router as health_router
 from app.api.sync import router as sync_router
+from app.api.tickets import router as ticket_router
 from app.core.config import get_settings
 from app.sync.worker import start_background_sync, stop_background_sync
 
@@ -34,7 +35,13 @@ def create_app() -> FastAPI:
     """Создать и настроить экземпляр FastAPI-приложения."""
     settings = get_settings()
 
-    application = FastAPI(title=settings.app_name, version="0.1.0", debug=settings.debug, lifespan=lifespan)
+    application = FastAPI(
+        title=settings.app_name,
+        version="0.1.0",
+        description=("REST API для синхронизации событий, просмотра доступных мест " "и регистрации посетителей."),
+        debug=settings.debug,
+        lifespan=lifespan,
+    )
 
     @application.exception_handler(RequestValidationError)
     async def validation_exception_handler(_: Request, exception: RequestValidationError) -> JSONResponse:
@@ -46,6 +53,7 @@ def create_app() -> FastAPI:
 
     application.include_router(health_router)
     application.include_router(events_router)
+    application.include_router(ticket_router)
     application.include_router(sync_router)
 
     return application

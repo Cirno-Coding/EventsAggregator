@@ -14,6 +14,8 @@ router = APIRouter(prefix="/api/sync", tags=["sync"])
     "/trigger",
     response_model=SyncTriggerResponse,
     status_code=status.HTTP_200_OK,
+    summary="Запустить синхронизацию событий",
+    description=("Создаёт фоновую задачу синхронизации с Events Provider API " "и сразу возвращает ответ, не ожидая её завершения."),
 )
 async def trigger_sync(settings: Settings = Depends(get_app_settings)) -> SyncTriggerResponse:
     """Запустить синхронизацию событий вручную."""

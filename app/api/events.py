@@ -19,6 +19,10 @@ router = APIRouter(prefix="/api/events", tags=["events"])
     "",
     response_model=EventListResponse,
     status_code=status.HTTP_200_OK,
+    summary="Получить список событий",
+    description=(
+        "Возвращает события из локальной базы данных с фильтрацией по дате " "и постраничной навигацией. Не обращается к Events Provider API."
+    ),
 )
 async def list_events(
     request: Request,
@@ -61,6 +65,8 @@ async def list_events(
     "/{event_id}",
     response_model=EventDetailResponse,
     status_code=status.HTTP_200_OK,
+    summary="Получить подробную информацию о событии",
+    description=("Возвращает одно синхронизированное событие и сведения о площадке " "из локальной базы данных."),
 )
 async def get_event(
     event_id: UUID,
@@ -80,7 +86,8 @@ async def get_event(
     "/{event_id}/seats",
     response_model=SeatsResponse,
     status_code=status.HTTP_200_OK,
-    summary="Получить свободные места"
+    summary="Получить свободные места",
+    description=("Возвращает свободные места опубликованного события из кэша " "или запрашивает их у Events Provider API. Кэш хранится 30 секунд."),
 )
 async def get_event_seats(
     event_id: UUID,
