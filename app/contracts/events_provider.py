@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TypedDict
 
 
@@ -64,3 +65,14 @@ class ProviderUnregisterData(TypedDict):
     """
 
     success: bool
+
+
+def parse_provider_datetime(value: str) -> datetime:
+    """Преобразовать ISO-дату Provider API в datetime с часовым поясом."""
+    normalized_value = value[:-1] + "+00:00" if value.endswith("Z") else value
+    parsed_value = datetime.fromisoformat(normalized_value)
+
+    if parsed_value.tzinfo is None:
+        raise ValueError("Дата от Events Provider API должна содержать часовой пояс.")
+
+    return parsed_value

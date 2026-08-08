@@ -1,26 +1,12 @@
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.contracts.events_provider import ProviderEventData
+from app.contracts.events_provider import ProviderEventData, parse_provider_datetime
 from app.db.models import Event, Place
-
-
-def parse_datetime(value: str) -> datetime:
-    """
-    Преобразовать ISO-дату Provider API в datetime с часовым поясом.
-    """
-
-    normalized_value = value[:-1] + "+00:00" if value.endswith("Z") else value
-    parsed_value = datetime.fromisoformat(normalized_value)
-
-    if parsed_value.tzinfo is None:
-        raise ValueError("Дата от Events Provider API должна содержать часовой пояс.")
-
-    return parsed_value
 
 
 class EventRepository:
@@ -71,21 +57,21 @@ class EventRepository:
             city=place_data["city"],
             address=place_data["address"],
             seats_pattern=place_data["seats_pattern"],
-            changed_at=parse_datetime(place_data["changed_at"]),
-            created_at=parse_datetime(place_data["created_at"]),
+            changed_at=parse_provider_datetime(place_data["changed_at"]),
+            created_at=parse_provider_datetime(place_data["created_at"]),
         )
 
         event = Event(
             id=UUID(event_data["id"]),
             name=event_data["name"],
             place_id=place.id,
-            event_time=parse_datetime(event_data["event_time"]),
-            registration_deadline=parse_datetime(event_data["registration_deadline"]),
+            event_time=parse_provider_datetime(event_data["event_time"]),
+            registration_deadline=parse_provider_datetime(event_data["registration_deadline"]),
             status=event_data["status"],
             number_of_visitors=event_data["number_of_visitors"],
-            changed_at=parse_datetime(event_data["changed_at"]),
-            created_at=parse_datetime(event_data["created_at"]),
-            status_changed_at=parse_datetime(event_data["status_changed_at"]),
+            changed_at=parse_provider_datetime(event_data["changed_at"]),
+            created_at=parse_provider_datetime(event_data["created_at"]),
+            status_changed_at=parse_provider_datetime(event_data["status_changed_at"]),
         )
 
         await self._session.merge(place)

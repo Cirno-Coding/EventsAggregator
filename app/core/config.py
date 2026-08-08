@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", populate_by_name=True)
 
     @property
-    def database_url(self) -> str | None:
+    def database_url(self) -> str:
         """
         Вернуть URL БД в формате, подходящем для асинхронного драйвера asyncpg переменная `postgres_connection_string`.
         """
