@@ -2,8 +2,12 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
+from app.api.events import router as events_router
 from app.api.health import router as health_router
 from app.api.sync import router as sync_router
 from app.core.config import get_settings
@@ -31,7 +35,17 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     application = FastAPI(title=settings.app_name, version="0.1.0", debug=settings.debug, lifespan=lifespan)
+
+    @application.exception_handler(RequestValidationError)
+    async def validation_exception_handler(_: Request, exception: RequestValidationError) -> JSONResponse:
+        """Вернуть ошибку валидации клиентского запроса с кодом HTTP 400."""
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": jsonable_encoder(exception.errors())},
+        )
+
     application.include_router(health_router)
+    application.include_router(events_router)
     application.include_router(sync_router)
 
     return application
