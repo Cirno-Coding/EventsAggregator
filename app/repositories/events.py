@@ -1,43 +1,12 @@
 from datetime import date, datetime
-from typing import TypedDict
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.contracts.events_provider import ProviderEventData
 from app.db.models import Event, Place
-
-
-class ProviderPlaceData(TypedDict):
-    """
-    Данные площадки из ответа Events Provider API.
-    """
-
-    id: str
-    name: str
-    city: str
-    address: str
-    seats_pattern: str
-    changed_at: str
-    created_at: str
-
-
-class ProviderEventData(TypedDict):
-    """
-    Данные события из ответа Events Provider API.
-    """
-
-    id: str
-    name: str
-    place: ProviderPlaceData
-    event_time: str
-    registration_deadline: str
-    status: str
-    number_of_visitors: int
-    changed_at: str
-    created_at: str
-    status_changed_at: str
 
 
 def parse_datetime(value: str) -> datetime:
@@ -49,7 +18,7 @@ def parse_datetime(value: str) -> datetime:
     parsed_value = datetime.fromisoformat(normalized_value)
 
     if parsed_value.tzinfo is None:
-        raise ValueError("Дата от Events Provider API должна содержать часовой пояс")
+        raise ValueError("Дата от Events Provider API должна содержать часовой пояс.")
 
     return parsed_value
 
