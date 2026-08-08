@@ -56,3 +56,10 @@ class EventListResponse(BaseModel):
     next: str | None
     previous: str | None
     results: list[EventListItemResponse]
+
+
+class SeatsResponse(BaseModel):
+    """Список свободных мест для одного события."""
+
+    event_id: UUID
+    available_seats: list[str]
