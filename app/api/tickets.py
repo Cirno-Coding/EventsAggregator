@@ -139,7 +139,7 @@ async def create_ticket(
     response_model=DeleteTicketResponse,
     status_code=status.HTTP_200_OK,
     summary="Отменить регистрацию по билету",
-    description=("Отменяет регистрацию в Events Provider API, удаляет локальную " "запись о билете и очищает кэш свободных мест."),
+    description=("Отменяет регистрацию в Events Provider API, помечает локальный билет " "отменённым и очищает кэш свободных мест."),
 )
 async def delete_ticket(
     ticket_id: UUID,

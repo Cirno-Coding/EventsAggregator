@@ -1,4 +1,4 @@
-from app.db.models.enums import EventStatus, OutboxEventType, OutboxStatus, SyncStatus
+from app.db.models.enums import EventStatus, OutboxEventType, OutboxStatus, SyncStatus, TicketStatus
 from app.db.models.event import Event
 from app.db.models.outbox import OutboxEvent
 from app.db.models.place import Place
@@ -17,4 +17,5 @@ __all__ = [
     "SyncStatus",
     "Ticket",
     "TicketIdempotencyKey",
+    "TicketStatus",
 ]

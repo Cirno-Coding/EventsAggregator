@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Ticket
+from app.db.models import Ticket, TicketStatus
 
 
 class TicketRepository:
@@ -29,7 +29,14 @@ class TicketRepository:
         Создать локальную запись о билете и вернуть её.
         """
         ticket = Ticket(
-            id=ticket_id, event_id=event_id, first_name=first_name, last_name=last_name, email=email, seat=seat, created_at=datetime.now(timezone.utc)
+            id=ticket_id,
+            event_id=event_id,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            seat=seat,
+            status=TicketStatus.ACTIVE.value,
+            created_at=datetime.now(timezone.utc),
         )
         self._session.add(ticket)
         return ticket
@@ -41,8 +48,11 @@ class TicketRepository:
         result = await self._session.execute(select(Ticket).where(Ticket.id == ticket_id))
         return result.scalar_one_or_none()
 
-    async def delete(self, ticket: Ticket) -> None:
+    async def mark_cancelled(self, ticket: Ticket) -> None:
         """
-        Удалить локальную запись о билете.
+        Пометить билет отменённым без физического удаления из БД.
+
+        Commit выполняется API-слоем после успешной отмены регистрации
+        в Events Provider API.
         """
-        await self._session.delete(ticket)
+        ticket.status = TicketStatus.CANCELLED.value

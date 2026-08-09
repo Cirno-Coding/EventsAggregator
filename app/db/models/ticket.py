@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.models.enums import TicketStatus
 
 if TYPE_CHECKING:
     from app.db.models.event import Event
@@ -30,7 +31,13 @@ class Ticket(Base):
     last_name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
     seat: Mapped[str] = mapped_column(String(50), nullable=False)
-
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default=TicketStatus.ACTIVE.value,
+        server_default=TicketStatus.ACTIVE.value,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

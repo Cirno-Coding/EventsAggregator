@@ -27,3 +27,10 @@ class OutboxEventType(str, enum.Enum):
     """Поддерживаемые типы событий в Transactional Outbox."""
 
     TICKET_PURCHASED = "ticket_purchased"
+
+
+class TicketStatus(str, enum.Enum):
+    """Допустимые статусы локальной записи о билете."""
+
+    ACTIVE = "active"
+    CANCELLED = "cancelled"
