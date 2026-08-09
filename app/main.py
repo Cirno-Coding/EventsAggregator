@@ -2,10 +2,12 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.api.events import router as events_router
 from app.api.health import router as health_router
@@ -17,6 +19,26 @@ from app.core.database import async_session_maker
 from app.outbox.handlers import CapashinoOutboxHandler
 from app.outbox.worker import OutboxWorker, start_background_outbox, stop_background_outbox
 from app.sync.worker import start_background_sync, stop_background_sync
+
+
+def configure_glitchtip() -> None:
+    """
+    Подключить Sentry SDK к GlitchTip при наличии DSN.
+
+    FastAPI-интеграция автоматически отправляет необработанные исключения.
+    При пустом GLITCHTIP_DSN приложение продолжает работать без мониторинга.
+    """
+    settings = get_settings()
+
+    if settings.glitchtip_dsn is None:
+        return
+
+    sentry_sdk.init(
+        dsn=settings.glitchtip_dsn,
+        environment=settings.app_env,
+        send_default_pii=False,
+        integrations=[FastApiIntegration()],
+    )
 
 
 @asynccontextmanager
@@ -61,6 +83,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     """Создать и настроить экземпляр FastAPI-приложения."""
     settings = get_settings()
+    configure_glitchtip()
 
     application = FastAPI(
         title=settings.app_name,

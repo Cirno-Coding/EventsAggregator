@@ -10,6 +10,7 @@ from app.core.config import Settings, get_settings
 from app.core.database import get_async_session
 from app.repositories.events import EventRepository
 from app.repositories.outbox import OutboxRepository
+from app.repositories.ticket_idempotency import TicketIdempotencyRepository
 from app.repositories.tickets import TicketRepository
 
 
@@ -37,6 +38,11 @@ def get_ticket_repository(session: AsyncSession = Depends(get_db_session)) -> Ti
 def get_outbox_repository(session: AsyncSession = Depends(get_db_session)) -> OutboxRepository:
     """Создать репозиторий сообщений Transactional Outbox."""
     return OutboxRepository(session)
+
+
+def get_ticket_idempotency_repository(session: AsyncSession = Depends(get_db_session)) -> TicketIdempotencyRepository:
+    """Создать репозиторий ключей идемпотентности для текущего запроса."""
+    return TicketIdempotencyRepository(session)
 
 
 async def get_events_provider_client(settings: Settings = Depends(get_app_settings)) -> AsyncGenerator[EventsProviderClient, None]:
