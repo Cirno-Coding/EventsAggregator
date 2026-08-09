@@ -9,6 +9,7 @@ from app.clients.events_provider import EventsProviderClient
 from app.core.config import Settings, get_settings
 from app.core.database import get_async_session
 from app.repositories.events import EventRepository
+from app.repositories.outbox import OutboxRepository
 from app.repositories.tickets import TicketRepository
 
 
@@ -31,6 +32,11 @@ def get_event_repository(session: AsyncSession = Depends(get_db_session)) -> Eve
 def get_ticket_repository(session: AsyncSession = Depends(get_db_session)) -> TicketRepository:
     """Создать репозиторий билетов для текущего запроса."""
     return TicketRepository(session)
+
+
+def get_outbox_repository(session: AsyncSession = Depends(get_db_session)) -> OutboxRepository:
+    """Создать репозиторий сообщений Transactional Outbox."""
+    return OutboxRepository(session)
 
 
 async def get_events_provider_client(settings: Settings = Depends(get_app_settings)) -> AsyncGenerator[EventsProviderClient, None]:

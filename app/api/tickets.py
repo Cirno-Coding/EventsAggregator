@@ -14,10 +14,12 @@ from app.dependencies import (
     get_db_session,
     get_event_repository,
     get_events_provider_client,
+    get_outbox_repository,
     get_seats_cache,
     get_ticket_repository,
 )
 from app.repositories.events import EventRepository
+from app.repositories.outbox import OutboxRepository
 from app.repositories.tickets import TicketRepository
 from app.schemas.tickets import (
     CreateTicketRequest,
@@ -43,7 +45,9 @@ router = APIRouter(prefix="/api/tickets", tags=["Билеты"])
     status_code=status.HTTP_201_CREATED,
     summary="Зарегистрировать посетителя на событие",
     description=(
-        "Проверяет, что событие есть в локальной БД и опубликовано, " "создаёт регистрацию в Events Provider API и сохраняет билет локально."
+        "Проверяет опубликованное событие, создаёт регистрацию в Events "
+        "Provider API и в одной транзакции сохраняет локальный билет "
+        "с outbox-событием для последующей отправки уведомления."
     ),
 )
 async def create_ticket(
@@ -51,6 +55,7 @@ async def create_ticket(
     session: AsyncSession = Depends(get_db_session),
     events_repository: EventRepository = Depends(get_event_repository),
     tickets_repository: TicketRepository = Depends(get_ticket_repository),
+    outbox_repository: OutboxRepository = Depends(get_outbox_repository),
     client: EventsProviderClient = Depends(get_events_provider_client),
     seats_cache: TTLCache[list[str]] = Depends(get_seats_cache),
 ) -> CreateTicketResponse:
@@ -58,6 +63,7 @@ async def create_ticket(
     use_case = CreateTicketUseCase(
         events_repository=events_repository,
         tickets_repository=tickets_repository,
+        outbox_repository=outbox_repository,
         client=client,
         seats_cache=seats_cache,
     )
@@ -110,7 +116,7 @@ async def create_ticket(
     response_model=DeleteTicketResponse,
     status_code=status.HTTP_200_OK,
     summary="Отменить регистрацию по билету",
-    description=("Отменяет регистрацию в Events Provider API, " "удаляет локальную запись о билете и очищает кэш свободных мест."),
+    description=("Отменяет регистрацию в Events Provider API, удаляет локальную " "запись о билете и очищает кэш свободных мест."),
 )
 async def delete_ticket(
     ticket_id: UUID,
