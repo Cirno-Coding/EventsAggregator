@@ -1,4 +1,5 @@
 from datetime import date
+from time import monotonic
 from typing import Any, NoReturn, cast
 from urllib.parse import urlparse
 from uuid import UUID
@@ -6,6 +7,7 @@ from uuid import UUID
 import httpx
 
 from app.contracts.events_provider import ProviderEventData, ProviderEventsPageData
+from app.metrics.prometheus import EVENTS_PROVIDER_REQUEST_DURATION_SECONDS, EVENTS_PROVIDER_REQUESTS_TOTAL
 
 
 class EventsProviderError(Exception):
@@ -57,15 +59,18 @@ class EventsProviderClient:
         cursor_url: str | None = None,
     ) -> ProviderEventsPageData:
         """Получить страницу событий, изменённых после указанной даты."""
-
         if cursor_url is None:
-            response = await self._client.get(
-                "/api/events/",
+            response = await self._request(
+                method="GET",
+                url="/api/events/",
+                metrics_endpoint="/events",
                 params={"changed_at": changed_at.isoformat()},
             )
         else:
-            response = await self._client.get(
-                self._normalize_next_url(cursor_url),
+            response = await self._request(
+                method="GET",
+                url=self._normalize_next_url(cursor_url),
+                metrics_endpoint="/events",
             )
 
         data = self._get_json(response, expected_status_code=(200,))
@@ -87,8 +92,10 @@ class EventsProviderClient:
 
     async def get_available_seats(self, event_id: UUID) -> list[str]:
         """Получить актуальный список свободных мест для события."""
-        response = await self._client.get(
-            f"/api/events/{event_id}/seats/",
+        response = await self._request(
+            method="GET",
+            url=f"/api/events/{event_id}/seats/",
+            metrics_endpoint="/seats",
         )
         data = self._get_json(response, expected_status_code=(200,))
 
@@ -101,9 +108,10 @@ class EventsProviderClient:
 
     async def register(self, *, event_id: UUID, first_name: str, last_name: str, email: str, seat: str) -> UUID:
         """Зарегистрировать пользователя на событие и вернуть UUID билета."""
-
-        response = await self._client.post(
-            f"/api/events/{event_id}/register/",
+        response = await self._request(
+            method="POST",
+            url=f"/api/events/{event_id}/register/",
+            metrics_endpoint="/registration",
             json={
                 "first_name": first_name,
                 "last_name": last_name,
@@ -125,15 +133,60 @@ class EventsProviderClient:
 
     async def unregister(self, *, event_id: UUID, ticket_id: UUID) -> None:
         """Отменить регистрацию пользователя на событие."""
-        response = await self._client.request(
-            "DELETE",
-            f"/api/events/{event_id}/unregister/",
+        response = await self._request(
+            method="DELETE",
+            url=f"/api/events/{event_id}/unregister/",
+            metrics_endpoint="/registration",
             json={"ticket_id": str(ticket_id)},
         )
         data = self._get_json(response, expected_status_code=(200,))
 
         if data.get("success") is not True:
             raise EventsProviderError("Events Provider API не подтвердил отмену регистрации.")
+
+    async def _request(
+        self,
+        *,
+        method: str,
+        url: str,
+        metrics_endpoint: str,
+        params: dict[str, str] | None = None,
+        json: dict[str, str] | None = None,
+    ) -> httpx.Response:
+        """
+        Выполнить запрос к Events Provider API и обновить Prometheus-метрики.
+
+        Для сетевой ошибки в label status записывается network_error, поскольку
+        HTTP-ответ и код статуса в таком случае отсутствуют.
+        """
+        start_time = monotonic()
+        metrics_status = "network_error"
+
+        try:
+            response = await self._client.request(
+                method,
+                url,
+                params=params,
+                json=json,
+            )
+            metrics_status = str(response.status_code)
+
+            return response
+        except httpx.HTTPError as error:
+            raise EventsProviderError(
+                "Не удалось выполнить запрос к Events Provider API.",
+            ) from error
+        finally:
+            duration_seconds = monotonic() - start_time
+
+            EVENTS_PROVIDER_REQUESTS_TOTAL.labels(
+                endpoint=metrics_endpoint,
+                status=metrics_status,
+            ).inc()
+
+            EVENTS_PROVIDER_REQUEST_DURATION_SECONDS.labels(
+                endpoint=metrics_endpoint,
+            ).observe(duration_seconds)
 
     def _get_json(self, response: httpx.Response, *, expected_status_code: tuple[int, ...]) -> dict[str, Any]:
         """Проверить HTTP-статус и вернуть JSON-объект ответа."""
