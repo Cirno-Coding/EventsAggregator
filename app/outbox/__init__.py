@@ -1,0 +1,1 @@
+"""Компоненты Transactional Outbox."""
