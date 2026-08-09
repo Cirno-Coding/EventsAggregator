@@ -17,6 +17,7 @@ from app.api.tickets import router as ticket_router
 from app.clients.capashino import CapashinoClient
 from app.core.config import get_settings
 from app.core.database import async_session_maker
+from app.metrics.middleware import PrometheusMetricsMiddleware
 from app.outbox.handlers import CapashinoOutboxHandler
 from app.outbox.worker import OutboxWorker, start_background_outbox, stop_background_outbox
 from app.sync.worker import start_background_sync, stop_background_sync
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
         debug=settings.debug,
         lifespan=lifespan,
     )
+    application.add_middleware(PrometheusMetricsMiddleware)
 
     @application.exception_handler(RequestValidationError)
     async def validation_exception_handler(_: Request, exception: RequestValidationError) -> JSONResponse:
