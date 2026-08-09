@@ -11,5 +11,6 @@ alembic==1.14.0
 
 httpx==0.28.1
 sentry-sdk==2.66.1
+prometheus-client==0.21.1
 
 ruff==0.8.4

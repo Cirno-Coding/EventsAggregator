@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Ticket, TicketStatus
@@ -56,3 +56,13 @@ class TicketRepository:
         в Events Provider API.
         """
         ticket.status = TicketStatus.CANCELLED.value
+
+    async def count(self) -> int:
+        """Вернуть точное количество всех когда-либо созданных билетов."""
+        result = await self._session.execute(select(func.count()).select_from(Ticket))
+        return result.scalar_one()
+
+    async def count_cancelled(self) -> int:
+        """Вернуть точное количество билетов со статусом cancelled."""
+        result = await self._session.execute(select(func.count()).select_from(Ticket).where(Ticket.status == TicketStatus.CANCELLED.value))
+        return result.scalar_one()

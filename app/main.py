@@ -11,6 +11,7 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.api.events import router as events_router
 from app.api.health import router as health_router
+from app.api.metrics import router as metrics_router
 from app.api.sync import router as sync_router
 from app.api.tickets import router as ticket_router
 from app.clients.capashino import CapashinoClient
@@ -101,6 +102,7 @@ def create_app() -> FastAPI:
             content={"detail": jsonable_encoder(exception.errors())},
         )
 
+    application.include_router(metrics_router)
     application.include_router(health_router)
     application.include_router(events_router)
     application.include_router(ticket_router)

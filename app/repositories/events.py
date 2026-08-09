@@ -45,6 +45,12 @@ class EventRepository:
 
         return total, events
 
+    async def count(self) -> int:
+        """Вернуть точное текущее количество событий в БД."""
+        result = await self._session.execute(select(func.count()).select_from(Event))
+
+        return result.scalar_one()
+
     async def upsert_event_with_place(self, event_data: ProviderEventData) -> None:
         """
         Создать или обновить событие и его площадку по данным Provider API.
