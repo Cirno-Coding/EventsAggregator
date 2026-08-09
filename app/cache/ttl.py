@@ -1,11 +1,13 @@
-import time
+from time import monotonic
 from typing import Generic, TypeVar
+
+from app.metrics.prometheus import CACHE_HITS_TOTAL, CACHE_MISSES_TOTAL
 
 T = TypeVar("T")
 
 
 class TTLCache(Generic[T]):
-    """Потокобезопасный в рамках одного процесса кэш с ограниченным временем жизни."""
+    """Кэш в памяти одного процесса с ограниченным временем жизни значений."""
 
     def __init__(self, *, ttl_seconds: int) -> None:
         """
@@ -24,24 +26,31 @@ class TTLCache(Generic[T]):
         """
         Вернуть неистёкшее значение по ключу или None.
 
-        Просроченное значение удаляется при чтении.
+        Отсутствующее и просроченное значения считаются промахом. Актуальное
+        значение считается попаданием. Просроченное значение удаляется при чтении.
         """
         item = self._storage.get(key)
 
         if item is None:
+            CACHE_MISSES_TOTAL.inc()
+
             return None
 
         expires_at, value = item
 
-        if expires_at <= time.monotonic():
+        if expires_at <= monotonic():
             self._storage.pop(key, None)
+            CACHE_MISSES_TOTAL.inc()
+
             return None
+
+        CACHE_HITS_TOTAL.inc()
 
         return value
 
     def set(self, key: str, value: T) -> None:
         """Сохранить значение по ключу на время жизни кэша."""
-        expires_at = time.monotonic() + self._ttl_seconds
+        expires_at = monotonic() + self._ttl_seconds
         self._storage[key] = (expires_at, value)
 
     def delete(self, key: str) -> None:
